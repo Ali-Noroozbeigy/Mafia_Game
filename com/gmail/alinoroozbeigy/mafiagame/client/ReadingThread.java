@@ -17,11 +17,12 @@ public class ReadingThread extends Thread {
 
         boolean success = false;
 
+        // to check weather connection was successful or not
         while (!success)
         {
             try
             {
-                InputStream input = server.getInputStream();
+                InputStream input = this.server.getInputStream();
                 reader = new BufferedReader(new InputStreamReader(input));
                 success = true;
             }catch (IOException e)
@@ -35,12 +36,15 @@ public class ReadingThread extends Thread {
     @Override
     public void run() {
 
-        String receivedMessage="";
+        // for saving received messages
+        String receivedMessage;
 
+        // stating the chat
         while (true)
         {
             try {
 
+                // reading messages from server
                 receivedMessage = reader.readLine()+"\n";
                 System.out.println(receivedMessage);
 

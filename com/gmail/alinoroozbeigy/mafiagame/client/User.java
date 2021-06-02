@@ -17,6 +17,7 @@ public class User {
         Scanner scanner = new Scanner(System.in);
         boolean success = false;
 
+        // to find weather connection was successful or not
         while (!success)
         {
             try {
@@ -25,6 +26,7 @@ public class User {
                 port = scanner.nextInt();
                 server = new Socket("127.0.0.1",port);
                 System.out.println("به سرور وصل شدید!");
+                // starting threads
                 ReadingThread readingThread = new ReadingThread(server);
                 WritingThread writingThread = new WritingThread(server);
                 readingThread.start();

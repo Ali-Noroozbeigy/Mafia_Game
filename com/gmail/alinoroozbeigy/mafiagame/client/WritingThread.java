@@ -19,6 +19,7 @@ public class WritingThread extends Thread{
 
         boolean success = false;
 
+        // to find weather connection was successful or not
         while (!success)
         {
             try {
@@ -36,14 +37,15 @@ public class WritingThread extends Thread{
     @Override
     public void run() {
 
+        // getting the user name
         Scanner scanner = new Scanner(System.in);
-
         String username = scanner.nextLine();
 
         writer.println(username);
 
         String msg = "";
 
+        // starting the chat
         while (!msg.equals("پایان"))
         {
             msg = scanner.nextLine();

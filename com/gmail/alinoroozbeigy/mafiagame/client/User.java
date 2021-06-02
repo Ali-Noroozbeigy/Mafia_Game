@@ -27,6 +27,8 @@ public class User {
                 System.out.println("به سرور وصل شدید!");
                 ReadingThread readingThread = new ReadingThread(server);
                 WritingThread writingThread = new WritingThread(server);
+                readingThread.start();
+                writingThread.start();
                 success = true;
             }
             catch (UnknownHostException e)

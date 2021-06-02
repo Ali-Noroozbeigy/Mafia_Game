@@ -108,9 +108,11 @@ public abstract class Player implements Runnable {
         return sb.toString();
     }
 
-    //********//
+
     public void sendToServer (String message)
-    {}
+    {
+        god.sendToAll(message,this);
+    }
 
     public void receiveMessage(String message)
     {
@@ -171,5 +173,10 @@ public abstract class Player implements Runnable {
 
     public void setVotingState(boolean votingState) {
         this.votingState = votingState;
+    }
+
+    @Override
+    public String toString() {
+        return username;
     }
 }

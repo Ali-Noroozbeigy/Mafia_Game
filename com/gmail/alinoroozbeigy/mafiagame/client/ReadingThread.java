@@ -40,19 +40,19 @@ public class ReadingThread extends Thread {
         String receivedMessage;
 
         // stating the chat
-        while (true)
+        try
         {
-            try {
+            while (true){
 
                 // reading messages from server
                 receivedMessage = reader.readLine()+"\n";
                 System.out.println(receivedMessage);
 
             }
-            catch (IOException e)
-            {
-                System.out.println("خطا در دریافت پیام...");
-            }
+        }
+        catch (IOException e)
+        {
+            System.out.println("خطا در خواندن پیام");
         }
 
     }

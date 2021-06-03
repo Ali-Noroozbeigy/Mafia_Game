@@ -45,6 +45,13 @@ public abstract class Player implements Runnable {
             catch (IOException e)
             {
                 System.out.println("خطا در برقراری جریان، تلاش دوباره...");
+                try {
+                    reader.close();
+                    writer.close();
+                }catch (IOException ex)
+                {
+                    System.out.println("خطا در بستن جریان...");
+                }
             }
         }
 
@@ -65,9 +72,18 @@ public abstract class Player implements Runnable {
     @Override
     public void run() {
 
+        try {
+            this.username = reader.readLine();
+        }
+        catch (IOException e)
+        {
+            System.out.println("خطا در خواندن از بازیکن");
+        }
+
         String msg = "";
         do {
             msg = getMessage();
+            // if not silent and sleep
             sendToServer(msg);
 
         }while (!msg.equals("پایان"));

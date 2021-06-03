@@ -9,5 +9,4 @@ public class Citizen extends Player {
         super(god, mySocket, role);
     }
 
-
 }

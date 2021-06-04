@@ -75,7 +75,7 @@ public class God {
         return null;
     }
 
-    public void sleppAll ()
+    public void sleepAll ()
     {
         for (Player player : players)
             player.setSleep(true);
@@ -104,13 +104,29 @@ public class God {
         player.setSilent(true);
     }
 
-    public boolean allReady ()
+    public boolean allReadyToVote ()
     {
         for (Player player : players)
             if (!player.isReadyForVote())
                 return false;
         return true;
     }
+
+    public void setVotingState(boolean state)
+    {
+        for (Player player : players)
+            player.setVotingState(state);
+    }
+
+
+    public boolean allReadyToStart()
+    {
+        for (Player player : players)
+            if (!player.isReadyToStart())
+                return false;
+        return true;
+    }
+
 
     public void printPlayers ()
     {
@@ -136,7 +152,7 @@ public class God {
         return usernames;
     }
 
-    public void addUsername (String username)
+    public synchronized void addUsername (String username)
     {
         usernames.add(username);
     }
@@ -184,6 +200,29 @@ public class God {
         Collections.shuffle(roles);
     }
 
+    public void initPlayers(Socket client, ExecutorService service, int i)
+    {
+        System.out.println("بازیکن جدید متصل شد!");
+
+        godMessage("بازیکن جدید متصل شد!");
+        godMessage("[" + (i + 1) + "/" + MAX_PLAYER + "]");
+
+        Player player;
+
+        if (roles.get(i).getCategory().equals(Category.MAFIAS)) {
+            player = new Mafia(this, client, roles.get(i));
+            players.add(player);
+            mafias.add((Mafia) player);
+        } else {
+            player = new Citizen(this, client, roles.get(i));
+            players.add(player);
+            citizens.add((Citizen) player);
+        }
+        player.setStartingState(true);
+        service.execute(player);
+
+    }
+
     public void gameplay()
     {
         try (ServerSocket server = new ServerSocket(port))
@@ -198,26 +237,19 @@ public class God {
             while (i != MAX_PLAYER)
             {
                 Socket client = server.accept();
-                System.out.println("بازیکن جدید متصل شد!");
-
-                godMessage("بازیکن جدید متصل شد!");
-                godMessage("[" + (i + 1) + "/" + MAX_PLAYER + "]");
-
-                Player player;
-
-                if (roles.get(i).getCategory().equals(Category.MAFIAS)) {
-                    player = new Mafia(this, client, roles.get(i));
-                    players.add(player);
-                    mafias.add((Mafia) player);
-                } else {
-                    player = new Citizen(this, client, roles.get(i));
-                    players.add(player);
-                    citizens.add((Citizen) player);
-                }
-                service.execute(player);
+                initPlayers(client,service,i);
                 i++;
             }
-            printPlayers();
+
+            //printPlayers();
+
+            while (!allReadyToStart())
+            {
+                try {
+                    Thread.sleep(500);
+                }catch (InterruptedException e){}
+            }
+
         }
         catch (IOException e)
         {

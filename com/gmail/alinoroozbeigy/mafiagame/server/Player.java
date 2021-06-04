@@ -20,6 +20,8 @@ public abstract class Player implements Runnable {
     // saved by doctor
     private boolean saved;
 
+    private boolean readyToStart;
+    private boolean startingState;
     private boolean readyForVote;
     private boolean votingState;
 
@@ -64,45 +66,69 @@ public abstract class Player implements Runnable {
         sleep = true;
         gameover = false;
         saved = false;
+        readyToStart = false;
+        startingState = false;
         readyForVote = false;
         votingState = false;
     }
 
+
+    public void gettingUsername () throws IOException
+    {
+        writer.println("یک نام کابری وارد کنید");
+        this.username = reader.readLine();
+        while (god.getUsernames().contains(username)) {
+
+            writer.println("این نام کاربری وجود دارد. نامی دیگر انتخاب کنید");
+            this.username = reader.readLine();
+        }
+        writer.println("با موفقیت اضافه شدید! منتظر برای اتصال بقیه بازیکنان...");
+        writer.println("تا زمانی که گاد اعلام نکرده، اگر پیامی بفرستی، به کسی ارسال نمیشه.");
+        god.addUsername(username);
+        writer.println("نقش شما در بازی : "+role);
+    }
 
     @Override
     public void run() {
 
         // getting username
         try {
-            writer.println("یک نام کابری وارد کنید");
-            this.username = reader.readLine();
-            while (god.getUsernames().contains(username)) {
 
-                writer.println("این نام کاربری وجود دارد. نامی دیگر انتخاب کنید");
-                this.username = reader.readLine();
-            }
-            writer.println("با موفقیت اضافه شدید! منتظر برای اتصال بقیه بازیکنان...");
-            writer.println("تا زمانی که گاد اعلام نکرده، اگر پیامی بفرستی، به کسی ارسال نمیشه.");
-            god.addUsername(username);
-            writer.println("نقش شما در بازی : "+role);
+            gettingUsername();
+
+            String msg = "";
+            do {
+                // voting state
+                if (isStartingState())
+                {
+                    do
+                    {
+                        receiveMessage("برای شروع عبارت «آماده» را تایپ کن");
+                        msg = reader.readLine();
+                    }while (!msg.equals("آماده"));
+                    setReadyToStart(true);
+                    receiveMessage("ثبت شد! منتظر برای بقیه بازیکنان");
+                    setStartingState(false);
+                }
+                else
+                {
+                    msg = getMessage();
+                    // if not silent and sleep
+                    sendToServer(msg);
+                }
+
+            }while (!msg.equals("پایان"));
         }
         catch (IOException e)
         {
             System.out.println("خطا در خواندن از بازیکن");
         }
 
-        String msg = "";
-        do {
-            // voting state
-            msg = getMessage();
-            // if not silent and sleep
-            sendToServer(msg);
-
-        }while (!msg.equals("پایان"));
 
         // removing operations
         try {
             mySocket.close();
+            // remove from god
         }
         catch (IOException e)
         {
@@ -185,6 +211,22 @@ public abstract class Player implements Runnable {
 
     public void setSaved(boolean saved) {
         this.saved = saved;
+    }
+
+    public boolean isReadyToStart() {
+        return readyToStart;
+    }
+
+    public void setReadyToStart(boolean readyToStart) {
+        this.readyToStart = readyToStart;
+    }
+
+    public boolean isStartingState() {
+        return startingState;
+    }
+
+    public void setStartingState(boolean startingState) {
+        this.startingState = startingState;
     }
 
     public boolean isReadyForVote() {

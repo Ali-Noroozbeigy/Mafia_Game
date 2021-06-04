@@ -72,8 +72,19 @@ public abstract class Player implements Runnable {
     @Override
     public void run() {
 
+        // getting username
         try {
+            writer.println("یک نام کابری وارد کنید");
             this.username = reader.readLine();
+            while (god.getUsernames().contains(username)) {
+
+                writer.println("این نام کاربری وجود دارد. نامی دیگر انتخاب کنید");
+                this.username = reader.readLine();
+            }
+            writer.println("با موفقیت اضافه شدید! منتظر برای اتصال بقیه بازیکنان...");
+            writer.println("تا زمانی که گاد اعلام نکرده، اگر پیامی بفرستی، به کسی ارسال نمیشه.");
+            god.addUsername(username);
+            writer.println("نقش شما در بازی : "+role);
         }
         catch (IOException e)
         {
@@ -82,6 +93,7 @@ public abstract class Player implements Runnable {
 
         String msg = "";
         do {
+            // voting state
             msg = getMessage();
             // if not silent and sleep
             sendToServer(msg);

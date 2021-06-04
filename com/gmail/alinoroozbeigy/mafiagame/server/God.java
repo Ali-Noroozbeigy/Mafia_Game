@@ -4,6 +4,8 @@ import java.io.IOException;
 import java.net.ServerSocket;
 import java.net.Socket;
 import java.util.*;
+import java.util.concurrent.ExecutorService;
+import java.util.concurrent.Executors;
 
 public class God {
 
@@ -54,6 +56,17 @@ public class God {
         }
     }
 
+
+    public void godMessage(String message)
+    {
+        StringBuilder sb = new StringBuilder();
+        sb.append("[گاد]:");
+        sb.append(message);
+
+        for (Player player : players)
+            player.receiveMessage(sb.toString());
+    }
+
     public Player findPlayer (Role role)
     {
         for(Player player : players)
@@ -101,8 +114,9 @@ public class God {
 
     public void printPlayers ()
     {
-        for (Player player : players)
-            System.out.println(player);
+        for (Player player : players )
+            player.receiveMessage(players.toString());
+
     }
 
     public synchronized void increaseVote(Player player)
@@ -117,6 +131,15 @@ public class God {
         playerVotes.replaceAll((key,oldValue)->0);
     }
 
+
+    public HashSet<String> getUsernames() {
+        return usernames;
+    }
+
+    public void addUsername (String username)
+    {
+        usernames.add(username);
+    }
 
     public void generateRoles()
     {
@@ -169,28 +192,32 @@ public class God {
 
             generateRoles();
 
+            ExecutorService service = Executors.newCachedThreadPool();
+
             int i=0;
             while (i != MAX_PLAYER)
             {
                 Socket client = server.accept();
                 System.out.println("بازیکن جدید متصل شد!");
 
+                godMessage("بازیکن جدید متصل شد!");
+                godMessage("[" + (i + 1) + "/" + MAX_PLAYER + "]");
+
                 Player player;
 
-                if (roles.get(i).getCategory().equals(Category.MAFIAS))
-                {
-                    player = new Mafia(this,client,roles.get(i));
+                if (roles.get(i).getCategory().equals(Category.MAFIAS)) {
+                    player = new Mafia(this, client, roles.get(i));
                     players.add(player);
                     mafias.add((Mafia) player);
-                }
-                else
-                {
-                    player = new Citizen(this,client,roles.get(i));
+                } else {
+                    player = new Citizen(this, client, roles.get(i));
                     players.add(player);
                     citizens.add((Citizen) player);
                 }
+                service.execute(player);
                 i++;
             }
+            printPlayers();
         }
         catch (IOException e)
         {
@@ -211,6 +238,7 @@ public class God {
         God god = new God(port);
 
         // game play
+        god.gameplay();
 
     }
 

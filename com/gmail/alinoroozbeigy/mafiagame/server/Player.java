@@ -24,6 +24,7 @@ public abstract class Player implements Runnable {
     private boolean startingState;
     private boolean readyForVote;
     private boolean votingState;
+    private boolean voted;
 
 
     public Player (God god, Socket mySocket, Role role)
@@ -67,9 +68,10 @@ public abstract class Player implements Runnable {
         gameover = false;
         saved = false;
         readyToStart = false;
-        startingState = false;
+        startingState = true;
         readyForVote = false;
         votingState = false;
+        voted = false;
     }
 
 
@@ -104,7 +106,7 @@ public abstract class Player implements Runnable {
                     do
                     {
                         receiveMessage("برای شروع عبارت «آماده» را تایپ کن");
-                        msg = reader.readLine();
+                        msg = getMessage();
                     }while (!msg.equals("آماده"));
                     setReadyToStart(true);
                     receiveMessage("ثبت شد! منتظر برای بقیه بازیکنان");
@@ -113,8 +115,46 @@ public abstract class Player implements Runnable {
                 else
                 {
                     msg = getMessage();
+
+                    if(isVotingState())
+                    {
+                        setVoted(false);
+                        boolean success = false;
+                        int num = -1;
+                        do {
+                            try {
+                                num = Integer.parseInt(msg);
+                                if (num > god.getNumPlayers() || num<1)
+                                    throw new IndexOutOfBoundsException();
+                                god.increaseVote(num-1);
+                                success = true;
+                            }
+                            catch (NumberFormatException e)
+                            {
+                                receiveMessage("برای رای دادن، لطفا عدد وارد کنید.");
+                                msg = getMessage();
+                            }
+                            catch (IndexOutOfBoundsException e)
+                            {
+                                receiveMessage("عدد وارد شده غیر مجاز است. دوباره وارد کنید.");
+                                msg = getMessage();
+                            }
+                        }while (!success  && isVotingState());
+                        setVoted(true);
+                        setReadyForVote(false);
+                        setVotingState(false);
+                        msg = "رای به بازیکن شماره "+num ;
+                    }
+
+                    if(msg.equals("آماده"))
+                    {
+                        setReadyForVote(true);
+                        receiveMessage("ثبت شد، منتظر باقی بازیکنان بمانید!");
+                    }
+
                     // if not silent and sleep
-                    sendToServer(msg);
+                    if(!isSleep() && !isSilent())
+                        sendToServer("["+username+"] : "+msg);
                 }
 
             }while (!msg.equals("پایان"));
@@ -139,8 +179,8 @@ public abstract class Player implements Runnable {
 
     }
 
-    public void setUsername(String username) {
-        this.username = username;
+    public String getUsername() {
+        return username;
     }
 
     public String getMessage ()
@@ -148,11 +188,7 @@ public abstract class Player implements Runnable {
         StringBuilder sb = new StringBuilder();
 
         try {
-            sb.append("[");
-            sb.append(username);
-            sb.append("] : ");
             sb.append(reader.readLine());
-            sb.append("\n");
         }
         catch (IOException e)
         {
@@ -245,8 +281,16 @@ public abstract class Player implements Runnable {
         this.votingState = votingState;
     }
 
+    public boolean isVoted() {
+        return voted;
+    }
+
+    public void setVoted(boolean voted) {
+        this.voted = voted;
+    }
+
     @Override
     public String toString() {
-        return username;
+        return "["+username+"] : " + role;
     }
 }

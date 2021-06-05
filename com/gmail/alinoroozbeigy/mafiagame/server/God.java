@@ -130,14 +130,23 @@ public class God {
 
     public void printPlayers ()
     {
+        String indexName;
         for (Player player : players )
-            player.receiveMessage(players.toString());
+        {
+            int i= 1;
+            for (Player player1 : players)
+            {
+                indexName = (i++)+" : "+player1.getUsername();
+                player.receiveMessage(indexName);
+            }
+
+        }
 
     }
 
-    public synchronized void increaseVote(Player player)
+    public synchronized void increaseVote(int i)
     {
-
+        Player player = players.get(i);
         playerVotes.put(player,playerVotes.get(player)+1);
     }
 
@@ -147,9 +156,21 @@ public class God {
         playerVotes.replaceAll((key,oldValue)->0);
     }
 
+    public boolean allVoted()
+    {
+        for (Player player : players)
+            if (!player.isVoted())
+                return false;
+        return true;
+    }
 
     public HashSet<String> getUsernames() {
         return usernames;
+    }
+
+    public int getNumPlayers ()
+    {
+        return players.size();
     }
 
     public synchronized void addUsername (String username)
@@ -218,9 +239,96 @@ public class God {
             players.add(player);
             citizens.add((Citizen) player);
         }
-        player.setStartingState(true);
+        playerVotes.put(player,0);
         service.execute(player);
+    }
 
+    public void waitForAll()
+    {
+        while (!allReadyToStart())
+        {
+            try {
+                Thread.sleep(500);
+            }catch (InterruptedException e){}
+        }
+    }
+
+    public void delay(int millis)
+    {
+        try
+        {
+            Thread.sleep(millis);
+        }
+        catch (InterruptedException e)
+        {
+            System.out.println("خطا در تاخیر...");
+        }
+    }
+
+    public void introductionNight()
+    {
+        godMessage("بازی آغاز می شود! همه در خواب هستید! شب معارفه...");
+        delay(1500);
+        // mafias to know each other
+        godMessage("مافیا ها با هم آشنا می شوند!");
+        delay(1500);
+        for (Player player : mafias)
+        {
+            for (Player player1 : mafias)
+                if (player != player1)
+                    player.receiveMessage(player1.toString());
+        }
+
+        // introducing doctor to mayor
+        godMessage("شهردار با دکتر شهر آشنا می شود.");
+        delay(1500);
+        Player player = findPlayer(Role.MAYOR);
+        player.receiveMessage(findPlayer(Role.DOCTOR).toString());
+        godMessage("پایان شب معارفه!");
+        delay(1500);
+    }
+
+    public boolean gameOver ()
+    {
+        return (mafias.size() >= citizens.size()) ||
+                mafias.size() == 0;
+    }
+
+    public void dayStarts()
+    {
+        godMessage("روز آغاز می شود، میتوانید پنج دقیقه با هم گفت و گو کنید !");
+        godMessage("میتوانید عبارت آماده را برای شروع زودتر رای گیری تایپ کنید.");
+        awakeAll();
+
+        long end = System.currentTimeMillis() + (5 * 60 * 1000);
+
+        while (!allReadyToVote() && System.currentTimeMillis() <= end)
+        {
+            delay(6000);
+            /*try {
+                Thread.sleep(6000);
+            }catch (InterruptedException e){}*/
+        }
+
+        godMessage("روز تمام شد!");
+
+    }
+
+    public void getVotes()
+    {
+        setVotingState(true);
+        godMessage("رای گیری آغاز شد. سی ثانیه فرصت دارید تا به شماره بازیکن مورد نظر رای بدهید.");
+        printPlayers();
+        long end = System.currentTimeMillis() + (2*60 *1000);
+        while (!allVoted() && System.currentTimeMillis() <= end)
+        {
+            delay(6000);
+            /*try {
+                Thread.sleep(6000);
+            }catch (InterruptedException e){}*/
+        }
+        setVotingState(false);
+        godMessage("رای گیری تمام شد!");
     }
 
     public void gameplay()
@@ -241,14 +349,16 @@ public class God {
                 i++;
             }
 
-            //printPlayers();
 
-            while (!allReadyToStart())
-            {
-                try {
-                    Thread.sleep(500);
-                }catch (InterruptedException e){}
-            }
+            waitForAll();
+            service.shutdown(); //?
+
+            printPlayers();
+            introductionNight();
+
+            dayStarts();
+            getVotes();
+
 
         }
         catch (IOException e)

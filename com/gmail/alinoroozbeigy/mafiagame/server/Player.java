@@ -13,7 +13,7 @@ public abstract class Player implements Runnable {
     private String username;
     private boolean isMafia;
     private boolean isSilent;
-    private boolean Spectator;
+    private boolean spectator;
     private boolean sleep;
     private boolean gameover;
 
@@ -25,6 +25,8 @@ public abstract class Player implements Runnable {
     private boolean readyForVote;
     private boolean votingState;
     private boolean voted;
+    private boolean operationTime;
+    private boolean doneOperation;
 
 
     public Player (God god, Socket mySocket, Role role)
@@ -65,6 +67,7 @@ public abstract class Player implements Runnable {
 
         isSilent = false;
         sleep = true;
+        spectator = false;
         gameover = false;
         saved = false;
         readyToStart = false;
@@ -72,6 +75,8 @@ public abstract class Player implements Runnable {
         readyForVote = false;
         votingState = false;
         voted = false;
+        operationTime = false;
+        doneOperation = false;
     }
 
 
@@ -118,7 +123,6 @@ public abstract class Player implements Runnable {
 
                     if(isVotingState())
                     {
-                        setVoted(false);
                         boolean success = false;
                         int num = -1;
                         do {
@@ -127,6 +131,7 @@ public abstract class Player implements Runnable {
                                 if (num > god.getNumPlayers() || num<1)
                                     throw new IndexOutOfBoundsException();
                                 god.increaseVote(num-1);
+                                receiveMessage("ثبت شد!");
                                 success = true;
                             }
                             catch (NumberFormatException e)
@@ -144,6 +149,33 @@ public abstract class Player implements Runnable {
                         setReadyForVote(false);
                         setVotingState(false);
                         msg = "رای به بازیکن شماره "+num ;
+                    }
+
+                    else if (operationTime)
+                    {
+                        boolean success = false;
+                        int num = -1;
+                        do {
+                            try {
+                                num = Integer.parseInt(msg);
+                                if (num > god.getNumPlayers() || num<1)
+                                    throw new IndexOutOfBoundsException();
+                                god.setChosenPlayerIndex(num - 1);
+                                receiveMessage("دریافت شد!");
+                                success = true;
+                            }
+                            catch (NumberFormatException e)
+                            {
+                                receiveMessage("لطفا عدد بازیکن مورد نظر را وارد کنید.");
+                                msg = getMessage();
+                            }
+                            catch (IndexOutOfBoundsException e)
+                            {
+                                receiveMessage("عدد وارد شده غیر مجاز است. دوباره وارد کنید.");
+                            }
+                        }while (!success);
+                        doneOperation = true;
+                        operationTime = false;
                     }
 
                     if(msg.equals("آماده"))
@@ -226,11 +258,11 @@ public abstract class Player implements Runnable {
     }
 
     public boolean isSpectator() {
-        return Spectator;
+        return spectator;
     }
 
     public void setSpectator(boolean spectator) {
-        Spectator = spectator;
+        spectator = spectator;
     }
 
     public Role getRole() {
@@ -287,6 +319,18 @@ public abstract class Player implements Runnable {
 
     public void setVoted(boolean voted) {
         this.voted = voted;
+    }
+
+    public void setOperationTime(boolean operationTime) {
+        this.operationTime = operationTime;
+    }
+
+    public void setDoneOperation(boolean doneOperation) {
+        this.doneOperation = doneOperation;
+    }
+
+    public boolean isDoneOperation() {
+        return doneOperation;
     }
 
     @Override

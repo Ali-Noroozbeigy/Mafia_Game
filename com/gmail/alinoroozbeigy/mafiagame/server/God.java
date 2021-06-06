@@ -25,7 +25,9 @@ public class God {
     private int numBullet;
     private boolean lecSaveLec;
     private boolean docSaveDoc;
+    private boolean hardLifeShot;
     private int hardLifeCheck;
+    private int chosenPlayerIndex;
 
     public God(int port)
     {
@@ -43,6 +45,8 @@ public class God {
         lecSaveLec = false;
         docSaveDoc = false;
         hardLifeCheck = 2;
+        hardLifeShot = false;
+        chosenPlayerIndex = MAX_PLAYER;
 
     }
 
@@ -50,7 +54,7 @@ public class God {
     {
         for (Player player1 : players)
         {
-            if (!player.isSleep() && !(player1==player))
+            if (!player1.isSleep() && !(player1==player))
                 player1.receiveMessage(message);
 
         }
@@ -305,9 +309,6 @@ public class God {
         while (!allReadyToVote() && System.currentTimeMillis() <= end)
         {
             delay(6000);
-            /*try {
-                Thread.sleep(6000);
-            }catch (InterruptedException e){}*/
         }
 
         godMessage("روز تمام شد!");
@@ -316,19 +317,283 @@ public class God {
 
     public void getVotes()
     {
+        for (Player player : players)
+            player.setVoted(false);
         setVotingState(true);
         godMessage("رای گیری آغاز شد. سی ثانیه فرصت دارید تا به شماره بازیکن مورد نظر رای بدهید.");
         printPlayers();
-        long end = System.currentTimeMillis() + (2*60 *1000);
+        long end = System.currentTimeMillis() + (30 *1000);
         while (!allVoted() && System.currentTimeMillis() <= end)
         {
             delay(6000);
-            /*try {
-                Thread.sleep(6000);
-            }catch (InterruptedException e){}*/
         }
         setVotingState(false);
         godMessage("رای گیری تمام شد!");
+    }
+
+    public void setChosenPlayerIndex(int chosenPlayerIndex) {
+        this.chosenPlayerIndex = chosenPlayerIndex;
+    }
+
+    public Player godfatherOperation()
+    {
+        godMessage("مافیاها به مدت ده ثانیه با هم مشورت کنند!");
+        awakeMafias();
+        long end = System.currentTimeMillis() + 10000;
+        while (System.currentTimeMillis() <= end)
+        {
+            delay(2000);
+        }
+        godMessage("زمان مشورت تمام شد. مافیا ها میخوابند");
+        sleepAll();
+
+        godMessage("پدرخوانده نظر نهایی را اعلام کند.");
+        Player godfather = findPlayer(Role.GODFATHER);
+        godfather.setDoneOperation(false);
+        godfather.setOperationTime(true);
+        awakeRole(Role.GODFATHER);
+        while (!godfather.isDoneOperation())
+        {
+            delay(1000);
+        }
+        godMessage("پدرخوانده میخوابد");
+        sleepAll();
+        return players.get(chosenPlayerIndex);
+    }
+
+    public Player lecterOperation()
+    {
+        Player lecter = findPlayer(Role.LECTER);
+        boolean correctChoice = false;
+
+        godMessage("دکتر لکتر بازیکن مورد نظر را انتخاب کند.");
+
+        while (!correctChoice)
+        {
+            lecter.setDoneOperation(false);
+            lecter.setOperationTime(true);
+            awakeRole(Role.LECTER);
+
+            while (!lecter.isDoneOperation())
+            {
+                delay(1000);
+            }
+            sleepAll();
+
+            if(players.get(chosenPlayerIndex).getRole().equals(Role.LECTER)) {
+                if (lecSaveLec)
+                    lecter.receiveMessage("قبلا خودت را سیو کردی، فردی دیگر انتخاب کن");
+                else
+                {
+                    correctChoice = true;
+                    lecSaveLec = true;
+                }
+            }
+            else if (!players.get(chosenPlayerIndex).getRole().getCategory().equals(Category.MAFIAS))
+                lecter.receiveMessage("باید مافیا انتخاب کنی!دوباره انتخاب کن");
+            else
+                correctChoice = true;
+        }
+        godMessage("دکتر لکتر میخوابد");
+        return players.get(chosenPlayerIndex);
+    }
+
+    public Player doctorOperation()
+    {
+        Player doctor = findPlayer(Role.DOCTOR);
+        boolean correctChoice = false;
+
+        godMessage("دکتر شهر بازیکن مورد نظر را انتخاب کند.");
+
+        while (!correctChoice)
+        {
+            doctor.setDoneOperation(false);
+            doctor.setOperationTime(true);
+            awakeRole(Role.DOCTOR);
+
+            while (!doctor.isDoneOperation())
+            {
+                delay(1000);
+            }
+            sleepAll();
+
+            if(players.get(chosenPlayerIndex).getRole().equals(Role.DOCTOR))
+            {
+                if (docSaveDoc)
+                    doctor.receiveMessage("قبلا خودت را سیو کردی، فردی دیگر انتخاب کن.");
+                else
+                {
+                    correctChoice = true;
+                    docSaveDoc = true;
+                }
+            }
+            else
+                correctChoice = true;
+        }
+        godMessage("دکتر شهر میخوابد");
+        return players.get(chosenPlayerIndex);
+    }
+
+    public void inspectorOperation()
+    {
+        godMessage("کارآگاه استعلام بگیرد.");
+        Player inspector = findPlayer(Role.INSPECTOR);
+
+        inspector.setDoneOperation(false);
+        inspector.setOperationTime(true);
+        awakeRole(Role.INSPECTOR);
+
+        while (!inspector.isDoneOperation())
+        {
+            delay(1000);
+        }
+
+        if(players.get(chosenPlayerIndex).isMafia())
+            inspector.receiveMessage(players.get(chosenPlayerIndex).getUsername() + " مافیاست!");
+        else
+            inspector.receiveMessage(players.get(chosenPlayerIndex).getUsername() + " مافیا نیست!");
+        godMessage("کارآگاه میخوابد");
+        sleepAll();
+    }
+
+    public Player sniperOperation()
+    {
+        godMessage("حرفه ای هدف خود را اعلام کند");
+        Player sniper = findPlayer(Role.SNIPER);
+        Player target;
+        awakeRole(Role.SNIPER);
+        sniper.setDoneOperation(false);
+        sniper.setOperationTime(true);
+        if(numBullet>0) {
+            sniper.receiveMessage(numBullet + "تا تیر داری، اگر مایل به شلیک هستی عدد 2 رو وارد کن.");
+            sniper.receiveMessage("و اگر نه عدد 1 را وارد کن");
+            while (!sniper.isDoneOperation()) {
+                delay(1000);
+            }
+            if (chosenPlayerIndex == 1)
+            {
+                sniper.receiveMessage("شماره بازیکن را وارد کن");
+                sniper.setDoneOperation(false);
+                sniper.setOperationTime(true);
+                while (!sniper.isDoneOperation())
+                    delay(1000);
+                target = players.get(chosenPlayerIndex);
+                numBullet--;
+            }
+            else
+            {
+                sniper.receiveMessage("هدفی انتخاب نکردی");
+                target = null;
+            }
+
+            if(target != null && target.getRole().getCategory().equals(Category.CITIZENS))
+                sniper.receiveMessage("به شهروندان شلیک کردی، از بازی خارج میشی.");
+            godMessage("حرفه ای میخوابد");
+            sleepAll();
+            return target;
+        }
+        else
+        {
+            sniper.receiveMessage("گلوله هات تموم شده، انتخابی نداری");
+            godMessage("حرفه ای میخوابد");
+            sleepAll();
+            return null;
+        }
+    }
+
+    public Player psyOperation()
+    {
+        Player psy = findPlayer(Role.PSYCHOLOGIST);
+        Player target;
+        godMessage("روانشناس بازیکن را اعلام کند.");
+        awakeRole(Role.PSYCHOLOGIST);
+        psy.setDoneOperation(false);
+        psy.setOperationTime(true);
+        psy.receiveMessage("اگر مایل به ساکت کردن کسی هستی عدد 2 و اگر نه عدد 1 رو وارد کن");
+        while (!psy.isDoneOperation())
+            delay(1000);
+        if(chosenPlayerIndex == 1)
+        {
+            psy.setDoneOperation(false);
+            psy.setOperationTime(true);
+            psy.receiveMessage("عدد بازیکن مورد نظر را وارد کن");
+            while (!psy.isDoneOperation())
+                delay(1000);
+            target = players.get(chosenPlayerIndex);
+            godMessage("روانشناس میخوابد");
+            sleepAll();
+            return target;
+        }
+        else
+        {
+            psy.receiveMessage("هدفی انتخاب نکردی");
+            godMessage("روانشناس میخوابد");
+            sleepAll();
+            return null;
+        }
+
+    }
+
+    public boolean hardLifeOperation()
+    {
+        Player hard = findPlayer(Role.HARDLIFE);
+        godMessage("جان سخت بیدار شود");
+        hard.setDoneOperation(false);
+        hard.setOperationTime(true);
+        awakeRole(Role.HARDLIFE);
+
+        if(hardLifeCheck>0) {
+            hard.receiveMessage(hardLifeCheck + " بار میتونی استعلام بگیری");
+            hard.receiveMessage("اگر مایل به استعلام گرفتن هستی عدد 2 و اگر نه عدد 1 رو وارد کن.");
+            while (!hard.isDoneOperation())
+                delay(1000);
+            if (chosenPlayerIndex == 1)
+            {
+                hard.receiveMessage("استعلام اعلام خواهد شد.");
+                hardLifeCheck--;
+                godMessage("جان سخت میخوابد");
+                sleepAll();
+                return true;
+            }
+            else
+            {
+                hard.receiveMessage("استعلام نگرفتی");
+                godMessage("جان سخت میخوابد");
+                sleepAll();
+                return false;
+            }
+        }
+        else
+        {
+            hard.receiveMessage("تعداد استعلام ها تمام شده!");
+            godMessage("جان سخت میخوابد");
+            sleepAll();
+            return false;
+        }
+    }
+
+    public void nightStarts()
+    {
+        // mayor operation
+        Player mafiaPlayer;
+        Player lecterSaved;
+        Player doctorSaved;
+        Player sniperTarget;
+        Player psyTarget;
+        boolean hardCheck = false;
+
+        godMessage("شب آغاز می شود. قابلیت صحبت کردن تا روز غیر فعال می شود.");
+        sleepAll();
+
+        mafiaPlayer = godfatherOperation();
+        lecterSaved = lecterOperation();
+        doctorSaved = doctorOperation();
+        inspectorOperation();
+        sniperTarget = sniperOperation();
+        psyTarget = psyOperation();
+        if (MAX_PLAYER == 10)
+            hardCheck = hardLifeOperation();
+
     }
 
     public void gameplay()
@@ -356,8 +621,11 @@ public class God {
             printPlayers();
             introductionNight();
 
-            dayStarts();
-            getVotes();
+            /*dayStarts();
+            getVotes();*/
+            // remove that after asking mayor and clear
+
+            //nightStarts();
 
 
         }

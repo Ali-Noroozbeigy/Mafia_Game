@@ -17,6 +17,7 @@ public class God {
     private ArrayList<Citizen> citizens;
 
     private ArrayList<Player> killedPlayers;
+    private ArrayList<Player> spectators;
     private HashMap<Player, Integer> playerVotes;
     private HashSet<String> usernames;
     private ArrayList<Role> roles;
@@ -37,6 +38,7 @@ public class God {
         mafias = new ArrayList<>();
         citizens = new ArrayList<>();
         killedPlayers = new ArrayList<>();
+        spectators = new ArrayList<>();
         playerVotes = new HashMap<>();
         usernames = new HashSet<>();
         roles = new ArrayList<>();
@@ -58,6 +60,8 @@ public class God {
                 player1.receiveMessage(message);
 
         }
+        for (Player player1 : spectators)
+            player1.receiveMessage(message);
     }
 
 
@@ -68,6 +72,8 @@ public class God {
         sb.append(message);
 
         for (Player player : players)
+            player.receiveMessage(sb.toString());
+        for (Player player : spectators)
             player.receiveMessage(sb.toString());
     }
 
@@ -134,18 +140,33 @@ public class God {
 
     public void printPlayers ()
     {
+        StringBuilder sb = new StringBuilder();
         String indexName;
-        for (Player player : players )
-        {
-            int i= 1;
-            for (Player player1 : players)
-            {
-                indexName = (i++)+" : "+player1.getUsername();
-                player.receiveMessage(indexName);
-            }
 
+        int i= 1;
+        for (Player player : players)
+        {
+            indexName = (i++)+" : "+player.getUsername();
+            sb.append(indexName + " ");
         }
 
+        for (Player player : players )
+            player.receiveMessage(sb.toString());
+
+    }
+
+    public void printPlayers(Player player)
+    {
+        StringBuilder sb = new StringBuilder();
+        String indexName;
+
+        int i= 1;
+        for (Player player1 : players)
+        {
+            indexName = (i++)+" : "+player1.getUsername();
+            sb.append(indexName + " ");
+        }
+        player.receiveMessage(sb.toString());
     }
 
     public synchronized void increaseVote(int i)
@@ -315,6 +336,15 @@ public class God {
 
     }
 
+    public void printVotes()
+    {
+        StringBuilder sb = new StringBuilder();
+        godMessage("نتایج رای گیری");
+        for(Map.Entry<Player,Integer> entry : playerVotes.entrySet())
+            sb.append(entry.getKey().getUsername() + " : " +entry.getValue());
+        godMessage(sb.toString());
+    }
+
     public void getVotes()
     {
         for (Player player : players)
@@ -329,6 +359,25 @@ public class God {
         }
         setVotingState(false);
         godMessage("رای گیری تمام شد!");
+        printVotes();
+    }
+
+    public Player findMaxVote()
+    {
+        int maxVote = -1;
+        Player player = null;
+        boolean repeated = false;
+        for(Map.Entry<Player, Integer> entry : playerVotes.entrySet())
+        {
+            if(entry.getValue() > maxVote)
+            {
+                player = entry.getKey();
+                repeated = false;
+            }
+            else if(entry.getValue() == maxVote)
+                repeated = true;
+        }
+        return repeated?null:player;
     }
 
     public void setChosenPlayerIndex(int chosenPlayerIndex) {
@@ -352,6 +401,7 @@ public class God {
         godfather.setDoneOperation(false);
         godfather.setOperationTime(true);
         awakeRole(Role.GODFATHER);
+        printPlayers(godfather);
         while (!godfather.isDoneOperation())
         {
             delay(1000);
@@ -373,7 +423,7 @@ public class God {
             lecter.setDoneOperation(false);
             lecter.setOperationTime(true);
             awakeRole(Role.LECTER);
-
+            printPlayers(lecter);
             while (!lecter.isDoneOperation())
             {
                 delay(1000);
@@ -410,7 +460,7 @@ public class God {
             doctor.setDoneOperation(false);
             doctor.setOperationTime(true);
             awakeRole(Role.DOCTOR);
-
+            printPlayers(doctor);
             while (!doctor.isDoneOperation())
             {
                 delay(1000);
@@ -442,7 +492,7 @@ public class God {
         inspector.setDoneOperation(false);
         inspector.setOperationTime(true);
         awakeRole(Role.INSPECTOR);
-
+        printPlayers(inspector);
         while (!inspector.isDoneOperation())
         {
             delay(1000);
@@ -472,6 +522,7 @@ public class God {
             }
             if (chosenPlayerIndex == 1)
             {
+                printPlayers(sniper);
                 sniper.receiveMessage("شماره بازیکن را وارد کن");
                 sniper.setDoneOperation(false);
                 sniper.setOperationTime(true);
@@ -517,6 +568,7 @@ public class God {
             psy.setDoneOperation(false);
             psy.setOperationTime(true);
             psy.receiveMessage("عدد بازیکن مورد نظر را وارد کن");
+            printPlayers(psy);
             while (!psy.isDoneOperation())
                 delay(1000);
             target = players.get(chosenPlayerIndex);
@@ -572,10 +624,52 @@ public class God {
         }
     }
 
+    public boolean mayorCanceled()
+    {
+        Player mayor = findPlayer(Role.MAYOR);
+        godMessage("شهردار بیدار می شود");
+        mayor.setDoneOperation(false);
+        mayor.setOperationTime(true);
+        awakeRole(Role.MAYOR);
+        mayor.receiveMessage("اگر میخواهی رای گیری ملغی شود عدد 2 و اگر نه عدد 1 را وارد کن");
+        while (!mayor.isDoneOperation())
+            delay(1000);
+        if(chosenPlayerIndex == 1)
+        {
+            godMessage("رای گیری ملغی شد! شهردار میخوابد");
+            sleepAll();
+            return true;
+        }
+        else
+        {
+            godMessage("رای گیری ملغی نشد! شهردار میخوابد");
+            sleepAll();
+            return false;
+        }
+    }
+
+    public void makeSpectator(Player player)
+    {
+        player.receiveMessage("شما کشته شدید و از این پس به عنوان تماشاچی بازی را خواهید دید");
+        player.receiveMessage("در صورت عدم تمایل، با نوشتن پایان از بازی خارج شوید.");
+        player.setSpectator(true);
+        players.remove(player);
+        if(player.getRole().getCategory().equals(Category.MAFIAS))
+            mafias.remove((Mafia) player);
+        else
+            citizens.remove((Citizen) player);
+        playerVotes.remove(player);
+        usernames.remove(player.getUsername());
+
+        spectators.add(player);
+        killedPlayers.add(player);
+
+    }
+
     public void nightStarts()
     {
-        // mayor operation
-        Player mafiaPlayer;
+        Player votedPlayer;
+        Player mafiaTarget;
         Player lecterSaved;
         Player doctorSaved;
         Player sniperTarget;
@@ -585,7 +679,19 @@ public class God {
         godMessage("شب آغاز می شود. قابلیت صحبت کردن تا روز غیر فعال می شود.");
         sleepAll();
 
-        mafiaPlayer = godfatherOperation();
+        votedPlayer = findMaxVote();
+        if (votedPlayer != null)
+        {
+            godMessage(votedPlayer.getUsername()+" بیشترین رای را دارد.");
+            if(!mayorCanceled())
+                makeSpectator(votedPlayer);
+        }
+        else
+            godMessage("کسی با رای گیری حذف نمی شود!");
+
+        clearVotes();
+
+        mafiaTarget = godfatherOperation();
         lecterSaved = lecterOperation();
         doctorSaved = doctorOperation();
         inspectorOperation();
@@ -594,6 +700,81 @@ public class God {
         if (MAX_PLAYER == 10)
             hardCheck = hardLifeOperation();
 
+        StringBuilder report = new StringBuilder();
+        if(mafiaTarget==doctorSaved)
+            report.append("هدف مافیا توسط دکتر شهر نجات یافت!\n");
+        else
+        {
+            if (mafiaTarget.getRole().equals(Role.HARDLIFE) && !hardLifeShot)
+            {
+                hardLifeShot = true;
+                report.append("جان سخت برای اولین بار تیر خورد!");
+            }
+            else
+            {
+                report.append(mafiaTarget.getUsername());
+                report.append(" توسط مافیا کشته شد.\n");
+                makeSpectator(mafiaTarget);
+            }
+        }
+
+        if(sniperTarget != null)
+        {
+            if(sniperTarget == lecterSaved)
+                report.append("هدف حرفه ای توسط دکتر لکتر نجات یافت!\n");
+            else if (sniperTarget.getRole().getCategory().equals(Category.CITIZENS))
+            {
+                report.append("حرفه ای به شهروندان شلیک کرد و خودش از بازی حذف می شود.");
+                makeSpectator(findPlayer(Role.SNIPER));
+            }
+            else
+            {
+                report.append(sniperTarget.getUsername());
+                report.append(" توسط حرفه ای کشته شد.\n");
+                makeSpectator(sniperTarget);
+            }
+        }
+        else
+            report.append("حرفه ای شلیکی نداشت.\n");
+        if(psyTarget != null)
+        {
+            report.append(psyTarget.getUsername());
+            report.append(" توسط روانشناس در روز بعد ساکت شد.\n");
+            psyTarget.setSilent(true);
+        }
+        else
+            report.append("روانشناس کسی را ساکت نکرد.\n");
+        if(hardCheck)
+        {
+            report.append("جان سخت استعلام گرفت : ");
+            for(Player player : killedPlayers)
+                report.append(player.getRole() +",");
+        }
+        else
+        {
+            if (MAX_PLAYER == 10)
+                report.append("جان سخت استعلام نگرفت");
+        }
+
+        godMessage(report.toString());
+        godMessage("پایان شب !");
+    }
+
+    public void removePlayer(Player player, boolean spectator)
+    {
+        if(spectator)
+            spectators.remove(player);
+        else
+        {
+            players.remove(player);
+            if(player.getRole().getCategory().equals(Category.MAFIAS))
+                mafias.remove((Mafia)player);
+            else
+                citizens.remove((Citizen)player);
+            playerVotes.remove(player);
+            usernames.remove(player.getUsername());
+        }
+        godMessage(player.getUsername()+" بازی را ترک کرد");
     }
 
     public void gameplay()
@@ -621,11 +802,10 @@ public class God {
             printPlayers();
             introductionNight();
 
-            /*dayStarts();
-            getVotes();*/
-            // remove that after asking mayor and clear
+            dayStarts();
+            getVotes();
 
-            //nightStarts();
+            nightStarts();
 
 
         }

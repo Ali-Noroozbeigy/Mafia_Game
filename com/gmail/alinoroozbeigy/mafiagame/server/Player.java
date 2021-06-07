@@ -17,8 +17,6 @@ public abstract class Player implements Runnable {
     private boolean sleep;
     private boolean gameover;
 
-    // saved by doctor
-    private boolean saved;
 
     private boolean readyToStart;
     private boolean startingState;
@@ -69,7 +67,6 @@ public abstract class Player implements Runnable {
         sleep = true;
         spectator = false;
         gameover = false;
-        saved = false;
         readyToStart = false;
         startingState = true;
         readyForVote = false;
@@ -99,11 +96,11 @@ public abstract class Player implements Runnable {
     public void run() {
 
         // getting username
+        String msg = "";
         try {
 
             gettingUsername();
 
-            String msg = "";
             do {
                 // voting state
                 if (isStartingState())
@@ -166,7 +163,7 @@ public abstract class Player implements Runnable {
                             }
                             catch (NumberFormatException e)
                             {
-                                receiveMessage("لطفا عدد بازیکن مورد نظر را وارد کنید.");
+                                receiveMessage("لطفا عدد بازیکن مورد نظر وارد کنید.");
                                 msg = getMessage();
                             }
                             catch (IndexOutOfBoundsException e)
@@ -185,20 +182,25 @@ public abstract class Player implements Runnable {
                     }
 
                     // if not silent and sleep
-                    if(!isSleep() && !isSilent())
+                    if(!isSleep() && !isSilent() && !isSpectator())
                         sendToServer("["+username+"] : "+msg);
                 }
 
-            }while (!msg.equals("پایان"));
+            }while (!msg.equals("پایان") && !isSpectator());
         }
         catch (IOException e)
         {
             System.out.println("خطا در خواندن از بازیکن");
         }
 
+        while (!msg.equals("یایان"))
+        {
+            msg = getMessage();
+        }
 
         // removing operations
         try {
+            god.removePlayer(this,isSpectator());
             mySocket.close();
             // remove from god
         }
@@ -225,6 +227,14 @@ public abstract class Player implements Runnable {
         catch (IOException e)
         {
             System.out.println("خطا در برقراری ارتباط...");
+            try {
+                writer.close();
+                reader.close();
+                mySocket.close();
+                System.out.println("بازیکن خارج شد.");
+            }
+            catch (IOException ex){
+            }
         }
 
         return sb.toString();
@@ -271,14 +281,6 @@ public abstract class Player implements Runnable {
 
     public boolean isMafia() {
         return isMafia;
-    }
-
-    public boolean isSaved() {
-        return saved;
-    }
-
-    public void setSaved(boolean saved) {
-        this.saved = saved;
     }
 
     public boolean isReadyToStart() {

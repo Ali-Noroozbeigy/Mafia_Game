@@ -53,6 +53,13 @@ public class ReadingThread extends Thread {
         catch (IOException e)
         {
             System.out.println("خطا در خواندن پیام");
+            try {
+                reader.close();
+                System.out.println("خارج شدید...");
+            }
+            catch (IOException ex)
+            {
+            }
         }
 
     }

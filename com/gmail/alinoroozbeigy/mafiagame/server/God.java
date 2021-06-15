@@ -1,15 +1,23 @@
 package com.gmail.alinoroozbeigy.mafiagame.server;
 
+import java.io.FileWriter;
 import java.io.IOException;
+import java.io.PrintWriter;
 import java.net.ServerSocket;
 import java.net.Socket;
 import java.util.*;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 
+
+/**
+ * God class which manages the game.
+ * @author Ali Noroozbeigy
+ * @version 1
+ */
 public class God {
 
-    private final int MAX_PLAYER = 10;
+    private final int MAX_PLAYER;
 
 
     private ArrayList<Player> players;
@@ -30,9 +38,20 @@ public class God {
     private int hardLifeCheck;
     private int chosenPlayerIndex;
 
-    public God(int port)
+    private FileWriter fileWriter;
+    private PrintWriter writer;
+
+    /**
+     * Instantiates a new God.
+     *
+     * @param port       the port
+     * @param MAX_PLAYER the max player
+     */
+    public God(int port, int MAX_PLAYER)
     {
         this.port = port;
+
+        this.MAX_PLAYER = MAX_PLAYER;
 
         players = new ArrayList<>();
         mafias = new ArrayList<>();
@@ -50,8 +69,24 @@ public class God {
         hardLifeShot = false;
         chosenPlayerIndex = MAX_PLAYER;
 
+        try {
+
+            fileWriter = new FileWriter("Chats.txt");
+            writer = new PrintWriter(fileWriter);
+        }
+        catch(IOException e)
+        {
+            System.out.println("خطا در اتصال به فایل");
+        }
+
     }
 
+    /**
+     * Send a message to all if they won't sleep.
+     *
+     * @param message the message
+     * @param player  the player
+     */
     public void sendToAll(String message, Player player)
     {
         for (Player player1 : players)
@@ -62,9 +97,16 @@ public class God {
         }
         for (Player player1 : spectators)
             player1.receiveMessage(message);
+
+        writer.println(message);
     }
 
 
+    /**
+     * God message which everyone receive that.
+     *
+     * @param message the message
+     */
     public void godMessage(String message)
     {
         StringBuilder sb = new StringBuilder();
@@ -75,8 +117,15 @@ public class God {
             player.receiveMessage(sb.toString());
         for (Player player : spectators)
             player.receiveMessage(sb.toString());
+        writer.println(message);
     }
 
+    /**
+     * Finds player according to its role
+     *
+     * @param role the role
+     * @return the player
+     */
     public Player findPlayer (Role role)
     {
         for(Player player : players)
@@ -85,34 +134,58 @@ public class God {
         return null;
     }
 
+    /**
+     * Sleeps all.
+     */
     public void sleepAll ()
     {
         for (Player player : players)
             player.setSleep(true);
     }
 
+    /**
+     * Awakes all.
+     */
     public void awakeAll ()
     {
         for (Player player : players)
             player.setSleep(false);
     }
 
+    /**
+     * Awakes mafias.
+     */
     public void awakeMafias ()
     {
         for (Mafia mafia : mafias)
             mafia.setSleep(false);
     }
 
+    /**
+     * Awakes a role.
+     *
+     * @param player the player
+     */
     public void awakeRole(Player player)
     {
         player.setSleep(false);
     }
 
+    /**
+     * Silents a player.
+     *
+     * @param player the player
+     */
     public void silentPlayer(Player player)
     {
         player.setSilent(true);
     }
 
+    /**
+     * checks if All ready to vote.
+     *
+     * @return true if all ready to vote
+     */
     public boolean allReadyToVote ()
     {
         for (Player player : players)
@@ -121,6 +194,11 @@ public class God {
         return true;
     }
 
+    /**
+     * Sets voting state.
+     *
+     * @param state the state
+     */
     public void setVotingState(boolean state)
     {
         for (Player player : players)
@@ -128,6 +206,11 @@ public class God {
     }
 
 
+    /**
+     * checks All ready to start
+     *
+     * @return if all ready to start
+     */
     public boolean allReadyToStart()
     {
         for (Player player : players)
@@ -137,6 +220,9 @@ public class God {
     }
 
 
+    /**
+     * Prints players.
+     */
     public void printPlayers ()
     {
         StringBuilder sb = new StringBuilder();
@@ -154,6 +240,11 @@ public class God {
 
     }
 
+    /**
+     * Prints players for a specific role.
+     *
+     * @param player the player
+     */
     public void printPlayers(Player player)
     {
         StringBuilder sb = new StringBuilder();
@@ -168,18 +259,30 @@ public class God {
         player.receiveMessage(sb.toString());
     }
 
+    /**
+     * Increase votes of players.
+     *
+     * @param i the
+     */
     public synchronized void increaseVote(int i)
     {
         Player player = players.get(i);
         playerVotes.put(player,playerVotes.get(player)+1);
     }
 
+    /**
+     * Clear votes.
+     */
     public void clearVotes ()
     {
-
         playerVotes.replaceAll((key,oldValue)->0);
     }
 
+    /**
+     * checks if All voted.
+     *
+     * @return if all voted
+     */
     public boolean allVoted()
     {
         for (Player player : players)
@@ -188,20 +291,38 @@ public class God {
         return true;
     }
 
+    /**
+     * Gets usernames.
+     *
+     * @return the usernames
+     */
     public HashSet<String> getUsernames() {
         return usernames;
     }
 
+    /**
+     * Gets numbers of players.
+     *
+     * @return the numbers of players
+     */
     public int getNumPlayers ()
     {
         return players.size();
     }
 
+    /**
+     * Add username.
+     *
+     * @param username the username
+     */
     public synchronized void addUsername (String username)
     {
         usernames.add(username);
     }
 
+    /**
+     * Generate roles.
+     */
     public void generateRoles()
     {
         switch (MAX_PLAYER)
@@ -245,6 +366,13 @@ public class God {
         Collections.shuffle(roles);
     }
 
+    /**
+     * Init players with their roles.
+     *
+     * @param client  the client
+     * @param service the service
+     * @param i       the
+     */
     public void initPlayers(Socket client, ExecutorService service, int i)
     {
         System.out.println("بازیکن جدید متصل شد!");
@@ -267,6 +395,9 @@ public class God {
         service.execute(player);
     }
 
+    /**
+     * Wait for all to become ready.
+     */
     public void waitForAll()
     {
         while (!allReadyToStart())
@@ -277,6 +408,11 @@ public class God {
         }
     }
 
+    /**
+     * Delays seconds.
+     *
+     * @param millis milliseconds of delays
+     */
     public void delay(int millis)
     {
         try
@@ -289,6 +425,9 @@ public class God {
         }
     }
 
+    /**
+     * Introduction night.
+     */
     public void introductionNight()
     {
         godMessage("بازی آغاز می شود! همه در خواب هستید! شب معارفه...");
@@ -312,17 +451,27 @@ public class God {
         delay(1500);
     }
 
+    /**
+     * checks if game is over.
+     *
+     * @return the boolean
+     */
     public boolean gameOver ()
     {
         return (mafias.size() >= citizens.size()) ||
                 mafias.size() == 0;
     }
 
+    /**
+     * Day starts.
+     */
     public void dayStarts()
     {
         godMessage("روز آغاز می شود، میتوانید پنج دقیقه با هم گفت و گو کنید !");
         godMessage("میتوانید عبارت آماده را برای شروع زودتر رای گیری تایپ کنید.");
         awakeAll();
+
+        printPlayers();
 
         long end = System.currentTimeMillis() + (5 * 60 * 1000);
 
@@ -335,15 +484,21 @@ public class God {
 
     }
 
+    /**
+     * Print votes.
+     */
     public void printVotes()
     {
         StringBuilder sb = new StringBuilder();
         godMessage("نتایج رای گیری");
         for(Map.Entry<Player,Integer> entry : playerVotes.entrySet())
-            sb.append(entry.getKey().getUsername() + " : " +entry.getValue());
+            sb.append("["+entry.getKey().getUsername() + " : " +entry.getValue()+"]");
         godMessage(sb.toString());
     }
 
+    /**
+     * Gets votes.
+     */
     public void getVotes()
     {
         for (Player player : players)
@@ -363,6 +518,11 @@ public class God {
         printVotes();
     }
 
+    /**
+     * Find max vote of a player.
+     *
+     * @return the player
+     */
     public Player findMaxVote()
     {
         int maxVote = -1;
@@ -382,10 +542,21 @@ public class God {
         return repeated?null:player;
     }
 
+    /**
+     * sets the player that a player chosen in operation.
+     *
+     * @param chosenPlayerIndex the chosen player index
+     */
     public void setChosenPlayerIndex(int chosenPlayerIndex) {
         this.chosenPlayerIndex = chosenPlayerIndex;
     }
 
+    /**
+     * checks if a Player is dead.
+     *
+     * @param role the role
+     * @return true if dead
+     */
     public boolean playerDead(Role role)
     {
         for(Player player : players)
@@ -394,6 +565,11 @@ public class God {
         return true;
     }
 
+    /**
+     * Godfather operation.
+     *
+     * @return target of god father
+     */
     public Player godfatherOperation()
     {
         godMessage("مافیاها به مدت ده ثانیه با هم مشورت کنند!");
@@ -431,6 +607,11 @@ public class God {
         return players.get(chosenPlayerIndex);
     }
 
+    /**
+     * Lecter operation.
+     *
+     * @return target
+     */
     public Player lecterOperation()
     {
         godMessage("دکتر لکتر بازیکن مورد نظر را انتخاب کند.");
@@ -477,6 +658,11 @@ public class God {
         return players.get(chosenPlayerIndex);
     }
 
+    /**
+     * Doctor operation.
+     *
+     * @return target
+     */
     public Player doctorOperation()
     {
         godMessage("دکتر شهر بازیکن مورد نظر را انتخاب کند.");
@@ -520,6 +706,9 @@ public class God {
         return players.get(chosenPlayerIndex);
     }
 
+    /**
+     * Inspector operation.
+     */
     public void inspectorOperation()
     {
         godMessage("کارآگاه استعلام بگیرد.");
@@ -550,6 +739,11 @@ public class God {
         sleepAll();
     }
 
+    /**
+     * Sniper operation
+     *
+     * @return target
+     */
     public Player sniperOperation()
     {
         godMessage("حرفه ای هدف خود را اعلام کند");
@@ -604,6 +798,11 @@ public class God {
         }
     }
 
+    /**
+     * Psy operation.
+     *
+     * @return target
+     */
     public Player psyOperation()
     {
         godMessage("روانشناس بازیکن را اعلام کند.");
@@ -646,6 +845,11 @@ public class God {
 
     }
 
+    /**
+     * Hard life operation.
+     *
+     * @return if checked
+     */
     public boolean hardLifeOperation()
     {
         godMessage("جان سخت بیدار شود");
@@ -692,6 +896,9 @@ public class God {
         }
     }
 
+    /**
+     * Mayor operation.
+     */
     public void mayorOperation()
     {
         sleepAll();
@@ -735,6 +942,11 @@ public class God {
         clearVotes();
     }
 
+    /**
+     * Makes a player spectator.
+     *
+     * @param player  the player want to be spectator
+     */
     public void makeSpectator(Player player)
     {
         player.receiveMessage("شما کشته شدید و از این پس به عنوان تماشاچی بازی را خواهید دید");
@@ -753,6 +965,9 @@ public class God {
 
     }
 
+    /**
+     * Night starts.
+     */
     public void nightStarts()
     {
         Player mafiaTarget;
@@ -835,6 +1050,12 @@ public class God {
         godMessage(report.toString());
     }
 
+    /**
+     * Removes player.
+     *
+     * @param player    the player
+     * @param spectator the spectator
+     */
     public void removePlayer(Player player, boolean spectator)
     {
         if(spectator)
@@ -852,6 +1073,9 @@ public class God {
         godMessage(player.getUsername()+" بازی را ترک کرد");
     }
 
+    /**
+     * clears a player silence.
+     */
     public void unSilentPlayer()
     {
         for (Player player : players)
@@ -862,6 +1086,33 @@ public class God {
             }
     }
 
+    /**
+     * Close players.
+     */
+    public void closePlayers()
+    {
+        try {
+            for (Player player : players)
+            {
+                player.receiveMessage("خروج");
+                player.getMySocket().close();
+            }
+            for (Player player : spectators)
+            {
+                player.receiveMessage("خروج");
+                player.getMySocket().close();
+            }
+            System.exit(1);
+        }
+        catch(IOException e)
+        {
+            System.out.println("خطا در بستن بازیکنان...");
+        }
+    }
+
+    /**
+     * Gameplay.
+     */
     public void gameplay()
     {
         try (ServerSocket server = new ServerSocket(port))
@@ -883,7 +1134,6 @@ public class God {
 
             waitForAll();
             service.shutdown(); //?
-
             printPlayers();
             introductionNight();
 
@@ -902,6 +1152,8 @@ public class God {
             else
                 godMessage("مافیاها برنده شدند!");
 
+            closePlayers();
+
         }
         catch (IOException e)
         {
@@ -909,6 +1161,11 @@ public class God {
         }
     }
 
+    /**
+     * The entry point of application.
+     *
+     * @param arg the input arguments
+     */
     public static void main (String[] arg)
     {
 
@@ -919,7 +1176,15 @@ public class God {
 
         port = sc.nextInt();
 
-        God god = new God(port);
+        System.out.println("تعداد بازیکنان را وارد کنید (8 تا 10 نفر)");
+        int n = sc.nextInt();
+        while (!(n>=8 && n<=10))
+        {
+            System.out.println("عددی بین 8 و 10 وارد کنید");
+            n = sc.nextInt();
+        }
+
+        God god = new God(port,n);
 
         // game play
         god.gameplay();

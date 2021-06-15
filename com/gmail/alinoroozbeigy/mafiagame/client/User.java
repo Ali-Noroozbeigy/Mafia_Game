@@ -7,8 +7,18 @@ import java.net.UnknownHostException;
 import java.util.Scanner;
 
 
+/**
+ * User class which allows player to send and receive messages from god
+ * @author Ali Noroozbeigy
+ * @version 1
+ */
 public class User {
 
+    /**
+     * The entry point of application.
+     *
+     * @param args the input arguments
+     */
     public static void main (String[] args)
     {
         Socket server ;

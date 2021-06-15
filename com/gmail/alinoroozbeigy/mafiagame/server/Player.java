@@ -3,6 +3,12 @@ package com.gmail.alinoroozbeigy.mafiagame.server;
 import java.io.*;
 import java.net.Socket;
 
+
+/**
+ * Player class that runs and does operations during the game .
+ * @author Ali Noroozbeigy
+ * @version 1
+ */
 public abstract class Player implements Runnable {
 
     private God god;
@@ -27,6 +33,13 @@ public abstract class Player implements Runnable {
     private boolean doneOperation;
 
 
+    /**
+     * Instantiates a new Player.
+     *
+     * @param god      the god
+     * @param mySocket the my socket
+     * @param role     the role
+     */
     public Player (God god, Socket mySocket, Role role)
     {
         this.god = god;
@@ -77,6 +90,11 @@ public abstract class Player implements Runnable {
     }
 
 
+    /**
+     * Gets username.
+     *
+     * @throws IOException the io exception
+     */
     public void gettingUsername () throws IOException
     {
         writer.println("یک نام کابری وارد کنید");
@@ -90,8 +108,12 @@ public abstract class Player implements Runnable {
         writer.println("تا زمانی که گاد اعلام نکرده، اگر پیامی بفرستی، به کسی ارسال نمیشه.");
         god.addUsername(username);
         writer.println("نقش شما در بازی : "+role);
+        System.out.println(this);
     }
 
+    /**
+     * run method plays the game for client
+     */
     @Override
     public void run() {
 
@@ -169,13 +191,14 @@ public abstract class Player implements Runnable {
                             catch (IndexOutOfBoundsException e)
                             {
                                 receiveMessage("عدد وارد شده غیر مجاز است. دوباره وارد کنید.");
+                                msg = getMessage();
                             }
                         }while (!success);
                         doneOperation = true;
                         operationTime = false;
                     }
 
-                    if(msg.equals("آماده"))
+                    if(msg.equals("آماده") && !isSpectator())
                     {
                         setReadyForVote(true);
                         receiveMessage("ثبت شد، منتظر باقی بازیکنان بمانید!");
@@ -185,7 +208,6 @@ public abstract class Player implements Runnable {
                     if(!isSleep() && !isSilent() && !isSpectator())
                         sendToServer("["+username+"] : "+msg);
                 }
-
             }while (!msg.equals("پایان") && !isSpectator());
         }
         catch (IOException e)
@@ -193,7 +215,7 @@ public abstract class Player implements Runnable {
             System.out.println("خطا در خواندن از بازیکن");
         }
 
-        while (!msg.equals("یایان"))
+        while (!msg.equals("پایان"))
         {
             msg = getMessage();
         }
@@ -201,6 +223,7 @@ public abstract class Player implements Runnable {
         // removing operations
         try {
             god.removePlayer(this,isSpectator());
+            receiveMessage("خروج");
             mySocket.close();
             // remove from god
         }
@@ -213,10 +236,20 @@ public abstract class Player implements Runnable {
 
     }
 
+    /**
+     * Gets username.
+     *
+     * @return the username
+     */
     public String getUsername() {
         return username;
     }
 
+    /**
+     * Gets message from client.
+     *
+     * @return the message
+     */
     public String getMessage ()
     {
         StringBuilder sb = new StringBuilder();
@@ -241,100 +274,228 @@ public abstract class Player implements Runnable {
     }
 
 
+    /**
+     * Sends a message to server.
+     *
+     * @param message the message
+     */
     public void sendToServer (String message)
     {
         god.sendToAll(message,this);
     }
 
+    /**
+     * Receive message.
+     *
+     * @param message the message
+     */
     public void receiveMessage(String message)
     {
         writer.println(message);
     }
 
+    /**
+     * Is sleep.
+     *
+     * @return the sleep of player
+     */
     public boolean isSleep() {
         return sleep;
     }
 
+    /**
+     * Sets sleep.
+     *
+     * @param sleep the sleep
+     */
     public void setSleep(boolean sleep) {
         this.sleep = sleep;
     }
 
+    /**
+     * Is silent.
+     *
+     * @return the silence of player
+     */
     public boolean isSilent() {
         return isSilent;
     }
 
+    /**
+     * Sets silent.
+     *
+     * @param silent the silent
+     */
     public void setSilent(boolean silent) {
         isSilent = silent;
     }
 
+    /**
+     * Is spectator.
+     *
+     * @return the spectator
+     */
     public boolean isSpectator() {
         return spectator;
     }
 
+    /**
+     * Sets spectator.
+     *
+     * @param spectator the spectator
+     */
     public void setSpectator(boolean spectator) {
-        spectator = spectator;
+        this.spectator = spectator;
     }
 
+    /**
+     * Gets role.
+     *
+     * @return the role
+     */
     public Role getRole() {
         return role;
     }
 
+    /**
+     * Is mafia.
+     *
+     * @return the if mafia
+     */
     public boolean isMafia() {
         return isMafia;
     }
 
+    /**
+     * Is ready to start boolean.
+     *
+     * @return ready to start
+     */
     public boolean isReadyToStart() {
         return readyToStart;
     }
 
+    /**
+     * Sets ready to start.
+     *
+     * @param readyToStart the ready to start
+     */
     public void setReadyToStart(boolean readyToStart) {
         this.readyToStart = readyToStart;
     }
 
+    /**
+     * Is starting state boolean.
+     *
+     * @return starting state
+     */
     public boolean isStartingState() {
         return startingState;
     }
 
+    /**
+     * Sets starting state.
+     *
+     * @param startingState the starting state
+     */
     public void setStartingState(boolean startingState) {
         this.startingState = startingState;
     }
 
+    /**
+     * Is ready for vote.
+     *
+     * @return ready for vote
+     */
     public boolean isReadyForVote() {
         return readyForVote;
     }
 
+    /**
+     * Sets ready for vote.
+     *
+     * @param readyForVote the ready for vote
+     */
     public void setReadyForVote(boolean readyForVote) {
         this.readyForVote = readyForVote;
     }
 
+    /**
+     * Is voting state.
+     *
+     * @return voting state
+     */
     public boolean isVotingState() {
         return votingState;
     }
 
+    /**
+     * Sets voting state.
+     *
+     * @param votingState the voting state
+     */
     public void setVotingState(boolean votingState) {
         this.votingState = votingState;
     }
 
+    /**
+     * Is voted.
+     *
+     * @return if player voted
+     */
     public boolean isVoted() {
         return voted;
     }
 
+    /**
+     * Sets voted.
+     *
+     * @param voted the voted
+     */
     public void setVoted(boolean voted) {
         this.voted = voted;
     }
 
+    /**
+     * Sets operation time.
+     *
+     * @param operationTime the operation time
+     */
     public void setOperationTime(boolean operationTime) {
         this.operationTime = operationTime;
     }
 
+    /**
+     * Sets done operation.
+     *
+     * @param doneOperation the done operation
+     */
     public void setDoneOperation(boolean doneOperation) {
         this.doneOperation = doneOperation;
     }
 
+    /**
+     * Is done operation
+     *
+     * @return if operation is done
+     */
     public boolean isDoneOperation() {
         return doneOperation;
     }
 
+    /**
+     * Gets my socket.
+     *
+     * @return the my socket
+     */
+    public Socket getMySocket() {
+        return mySocket;
+    }
+
+    /**
+     * to string method
+     * @return name plus role
+     */
     @Override
     public String toString() {
         return "["+username+"] : " + role;

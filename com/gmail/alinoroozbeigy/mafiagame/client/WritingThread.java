@@ -6,6 +6,12 @@ import java.io.PrintWriter;
 import java.net.Socket;
 import java.util.Scanner;
 
+
+/**
+ * Writing thread class which allows player to always sends message
+ * @author Ali Noroozbeigy
+ * @version 1
+ */
 public class WritingThread extends Thread{
 
 
@@ -13,6 +19,11 @@ public class WritingThread extends Thread{
     private Socket server;
 
 
+    /**
+     * Instantiates a new Writing thread.
+     *
+     * @param server the server
+     */
     public WritingThread(Socket server)
     {
         this.server = server;
@@ -34,6 +45,9 @@ public class WritingThread extends Thread{
 
     }
 
+    /**
+     * run method which starts sending messages
+     */
     @Override
     public void run() {
 
@@ -52,12 +66,7 @@ public class WritingThread extends Thread{
             writer.println(msg);
         }
 
-        try {
-            server.close();
-        }catch (IOException e)
-        {
-            System.out.println("ایراد در بستن سرور...");
-        }
+
 
     }
 }
